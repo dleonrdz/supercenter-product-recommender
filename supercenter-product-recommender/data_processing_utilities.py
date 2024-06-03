@@ -22,6 +22,13 @@ def raw_data_processing():
     departments_df = pd.read_excel(f'{raw_data_path}/tabla_departamento.xlsx')
     aisles_df = pd.read_excel(f'{raw_data_path}/tabla_pasillos.xlsx')
 
+    orders_df['id_producto'] = orders_df['id_producto'].astype(str)
+    products_df['id_producto'] = products_df['id_producto'].astype(str)
+    products_df['id_departamento'] = products_df['id_departamento'].astype(str)
+    products_df['id_pasillo'] = products_df['id_pasillo'].astype(str)
+    departments_df['id_departamento'] = departments_df['id_departamento'].astype(str)
+    aisles_df['id_pasillo'] = aisles_df['id_pasillo'].astype(str)
+
     # First step is to join products with department and aisle
     products_df2 = products_df \
         .merge(departments_df,
@@ -36,6 +43,8 @@ def raw_data_processing():
                          on='id_producto',
                          how='left')
 
+    df.fillna('Missing',inplace=True)
+
     # Rename columns
     renames= {'id_linea':'row_id',
               'id_orden':'order_id',
@@ -49,7 +58,6 @@ def raw_data_processing():
               'pasillo':'aisle'}
 
     df.rename(columns=renames, inplace=True)
-
     return df
 
 
