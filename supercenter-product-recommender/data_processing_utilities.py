@@ -51,7 +51,12 @@ def raw_data_processing():
                      'id_orden':'order_id',
                      'id_producto':'product_id',
                      'incluido_orden_carrito':'cart_inclusion_order',
-                     'reordenado':'reordered'}
+                     'reordenado':'reordered',
+                     'nombre_producto':'product_name',
+                     'id_pasillo':'aisle_id',
+                     'id_departamento':'department_id',
+                     'departamento':'department',
+                     'pasillo':'aisle'}
 
     renames_products = {'id_producto':'product_id',
                         'nombre_producto':'product_name',
@@ -60,7 +65,7 @@ def raw_data_processing():
                         'departamento':'department',
                         'pasillo':'aisle'}
 
-    orders_df.rename(columns=renames_orders, inplace=True)
+    df.rename(columns=renames_orders, inplace=True)
     products_df2.rename(columns=renames_products, inplace=True)
 
     return df, products_df2
