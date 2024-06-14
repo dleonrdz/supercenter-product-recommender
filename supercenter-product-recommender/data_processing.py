@@ -3,10 +3,11 @@ from db_utilities import write_table
 
 # Processing raw data
 print('Processing raw data...')
-processed_data = raw_data_processing()
+orders_data, products_data = raw_data_processing()
 
 # Saving processed data
 print('Saving processed data...')
-write_table(processed_data, 'processed_orders_data')
+write_table(orders_data, 'processed_orders_data')
+write_table(products_data, 'processed_products_data')
 
-print('Process data uploaded')
+print('Processed data uploaded')
