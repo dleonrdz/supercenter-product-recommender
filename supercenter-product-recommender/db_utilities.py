@@ -29,3 +29,15 @@ def read_table(table: str):
         df = pd.DataFrame(session.execute(q))
 
     return df
+
+def delete_table(table: str):
+    """
+    Deletes the specified table from store_sales.db and returns the result as a DataFrame
+    """
+    query = f"SELECT * FROM {table}"
+    with SessionLocal() as session:
+        q = text(query)
+        response = session.execute(q)
+
+    return response
+
