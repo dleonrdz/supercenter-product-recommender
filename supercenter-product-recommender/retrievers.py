@@ -1,5 +1,11 @@
 from sklearn.metrics.pairwise import cosine_similarity
+from vector_storage import load_faiss_index
 import numpy as np
+
+def faiss_retrieval(db_path, transformer_name, k=5):
+    db = load_faiss_index(path=db_path, transformer=transformer_name)
+    return db.as_retriever(search_kwargs={"k": k})
+
 def calculate_similarity(order_embeddings, product_embeddings):
     # Calculate the cosine similarity between each order embedding and all product embeddings
     similarities = cosine_similarity(order_embeddings, product_embeddings)
