@@ -10,27 +10,22 @@ orders_df['order_id'] = orders_df['order_id'].astype(str)
 
 print('Processing data...')
 ord_cols = ['product_id', 'product_name', 'department']
-prod_cols = ['product_name', 'department']
+prod_cols = ['product_id', 'product_name', 'department']
 df_orders, df_products = data_preparation(orders_df,
                                           ord_cols,
                                           products_df,
                                           prod_cols)
 
-#print('Creating product embeddings...')
-#order_embeddings, product_embeddings, model = embedding_process(df_orders,
- #                                                       df_products,
-  #                                                      'hiiamsid/sentence_similarity_spanish_es')
-
 print('Creating vectorstores...')
-df_products = df_products.head(100)
-df_products = df_orders.head(100)
 create_faiss_index(df=df_products,
+                   id_column='product_id',
                    transformer='hiiamsid/sentence_similarity_spanish_es',
-                   name='pt_products_index')
+                   name='products_index_pt')
 
 create_faiss_index(df=df_orders,
+                   id_column='order_id',
                    transformer='hiiamsid/sentence_similarity_spanish_es',
-                   name='pt_products_index')
+                   name='orders_index_pt')
 
 print('Embedding Pipeline Complete.')
 
