@@ -7,7 +7,6 @@ from embedding_process import data_preparation
 def faiss_retrieval(db_path, transformer_name, k=5):
     db = load_faiss_index(path=db_path, transformer=transformer_name)
     return db.as_retriever(search_kwargs={"k": k})
-
 def calculate_similarity(order_embeddings, product_embeddings):
     # Calculate the cosine similarity between each order embedding and all product embeddings
     similarities = cosine_similarity(order_embeddings, product_embeddings)
@@ -21,18 +20,17 @@ def get_top_n_recommendations(similarity_matrix, product_ids, n=5):
         recommendations.append((idx, top_n_product_ids))
     return recommendations
 
+def get_embeddings_by_ids(faiss_index, id_to_index, ids):
+    embeddings = []
+    for id in ids:
+        index_pos = id_to_index[id]
+        embeddings.append(faiss_index.reconstruct(index_pos))
+    return np.array(embeddings)
+
 
 if __name__ == "__main__":
-    orders_df = read_table('processed_orders_data')
-    products_df = read_table('processed_products_data')
-    ord_cols = ['product_id', 'product_name', 'department']
-    prod_cols = ['product_name', 'department']
-    df_orders, df_products = data_preparation(orders_df,
-                                              ord_cols,
-                                              products_df,
-                                              prod_cols)
-    df_orders = df_orders.head(1)
-    query = df_orders['text_feature'].iloc[0]
-    retriever = faiss_retrieval('vectorstores/products_index_pt', 'hiiamsid/sentence_similarity_spanish_es')
-    response = retriever.invoke(query)
-    print(response)
+    db = load_faiss_index(path='vectorstores/orders_index_pt', transformer='hiiamsid/sentence_similarity_spanish_es')
+    train_order_ids = ['1', '36']
+    id_to_index = {id: idx for idx, id in enumerate(train_order_ids)}  # Example mapping
+    train_embeddings = get_embeddings_by_ids(db.index, id_to_index, train_order_ids)
+    print(train_embeddings)
