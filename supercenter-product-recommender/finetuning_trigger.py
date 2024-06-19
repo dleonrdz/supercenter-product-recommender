@@ -4,6 +4,7 @@ from two_towers_finetuning import TwoTowerModel, train_step
 from model_evaluation import train_orders_df
 from vector_storage import load_faiss_index
 from embedding_process import data_preparation_orders, embedding_process
+import pickle
 #from retrievers import get_embeddings_by_ids
 
 print('Reading data...')
@@ -15,16 +16,37 @@ features = ['product_id', 'product_name', 'department']
 train_orders_df_prepared = data_preparation_orders(train_orders_df, features)
 
 print('Retrieving product embeddings...')
-db_path = 'vectorstores/products_index_pt'
+db_path_products = 'vectorstores/products_index_pt'
+db_path_orders = 'vectorstores/orders_index_pt'
 transformer_name = 'hiiamsid/sentence_similarity_spanish_es'
-db = load_faiss_index(db_path, transformer_name)
-index = db.index
-product_embeddings = index.reconstruct_n(0, index.ntotal)
+db_products = load_faiss_index(db_path_products, transformer_name)
+db_orders = load_faiss_index(db_path_orders, transformer_name)
+index_products = db_products.index
+index_orders = db_orders.index
+product_embeddings = index_products.reconstruct_n(0, index_products.ntotal)
 product_embeddings = np.array(product_embeddings)
 
-print('Creating training orders embeddings...')
-train_order_embeddings = embedding_process(train_orders_df_prepared, transformer_name)
-train_order_embeddings = np.array(train_order_embeddings)
+print('Retrieving orders embeddings...')
+orders_embeddings = index_orders.reconstruct_n(0, index_orders.ntotal)
+orders_embeddings = np.array(orders_embeddings)
+
+print(len(orders_embeddings))
+
+with open('vectorstores/orders_index_pt/index.pkl', 'rb') as f:
+    index_content = pickle.load(f)
+
+index_to_order_id = index_content[1]
+
+order_id_to_index = {v: k for k, v in index_to_order_id.items()}
+
+train_indices = [order_id_to_index[id] for id in train_order_ids if id in order_id_to_index]
+train_order_embeddings = np.array(orders_embeddings[train_indices])
+
+print(len(train_order_embeddings))
+
+#print('Creating training orders embeddings...')
+#train_order_embeddings = embedding_process(train_orders_df_prepared, transformer_name)
+#train_order_embeddings = np.array(train_order_embeddings)
 
 print('Preparing for training...')
 embedding_dim = 768  # Assuming the desired output embedding dimension is the same as input dimension
@@ -48,5 +70,5 @@ for epoch in range(epochs):
         loss = train_step(model, product_batch, order_batch, optimizer)
         print(f"Batch {i // batch_size + 1}/{len(product_embeddings) // batch_size}: Loss = {loss.numpy()}")
 
-model.save('models/two_towers_trained')
-
+#Saving model
+model.save('models/two_towers_trained.keras')
