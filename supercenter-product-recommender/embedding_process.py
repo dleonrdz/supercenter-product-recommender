@@ -1,4 +1,5 @@
 from sentence_transformers import SentenceTransformer
+import tensorflow as tf
 import os
 
 # Calculate the path to the directory ABOVE the current script directory (i.e., the project root)
@@ -22,10 +23,17 @@ def data_preparation_products(df_products, features):
 def embedding_process(df, transformer):
   path = os.path.join(PROJECT_ROOT, 'data/')
   model = SentenceTransformer(transformer)
-
   embeddings = model.encode(df['text_feature'].tolist())
-
   return embeddings
+
+def get_refined_embeddings(model, embeddings, tower = 'product'):
+  if tower == 'product':
+    inputs = {'product_input': embeddings, 'order_input': tf.zeros_like(embeddings)}
+    refined_embeddings, _ = model(inputs)
+  elif tower == 'order':
+    inputs = {'product_input': tf.zeros_like(embeddings), 'order_input': embeddings}
+    _, refined_embeddings = model(inputs)
+  return refined_embeddings
 
 
 
