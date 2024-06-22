@@ -1,28 +1,32 @@
-import pandas as pd
-import random
-from db_utilities import read_table
-import numpy as np
+import logging
+import os
+from recommenders import get_top_n_recommendations_faiss
+from model_training_and_evaluation_utils import test_orders_df, leave_k_out, compute_metrics
+from db_utilities import write_table
+from embedding_process import data_preparation_orders
 
-orders_df = read_table('processed_orders_data')
-orders_df['order_id'] = orders_df['order_id'].astype(str)
-test_size = 0.3
-test_orders = orders_df['order_id'].drop_duplicates().sample(frac=test_size, random_state=42)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+logs_path = os.path.join(PROJECT_ROOT, 'supercenter-product-recommender/logs/model_evaluation_faiss_log.txt')
+logging.basicConfig(level=logging.INFO, filename=logs_path, filemode='w')
 
-test_orders_df = orders_df[orders_df['order_id'].isin(test_orders)]
-train_orders_df = orders_df[(~orders_df['order_id'].isin(test_orders))]
-def leave_k_out_efficient(df, k=1):
-    # Randomly permute the indices within each group
-    df['rand'] = np.random.random(len(df))
-    df = df.sort_values(['order_id', 'rand'])
-    # Generate a rank within each group
-    df['rank'] = df.groupby('order_id').cumcount() + 1
+write_table(test_orders_df, 'test_orders')
 
-    # Determine the number of items in each order
-    order_sizes = df.groupby('order_id')['product_id'].transform('count')
+logging.info('Hiding test items within orders...')
+test_partial_orders_df, test_hidden_orders_df = leave_k_out(test_orders_df, k=2)
 
-    # Create masks for partial orders and hidden items
-    df['is_hidden'] = df['rank'] <= k
-    partial_orders_df = df[~df['is_hidden']].drop(columns=['rand', 'rank', 'is_hidden'])
-    hidden_items_df = df[df['is_hidden']].drop(columns=['rand', 'rank', 'is_hidden'])
+logging.info('Preparing test partial orders...')
+test_orders_input = data_preparation_orders(test_hidden_orders_df)
 
-    return partial_orders_df, hidden_items_df
+logging.info('Getting recommendations...')
+text_features = test_orders_input['text_feature'].tolist()
+recommendations = get_top_n_recommendations_faiss(text_features, n=5)
+test_orders_input['recommendations'] = recommendations
+
+logging.info('Computing metrics...')
+precision, recall, f1_score = compute_metrics(test_hidden_orders_df, test_orders_input)
+
+logging.info(f'Precision: {precision:.4f}')
+logging.info(f'Recall: {recall:.4f}')
+logging.info(f'F1-Score: {f1_score:.4f}')
+
+
