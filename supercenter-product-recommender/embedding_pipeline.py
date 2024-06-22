@@ -9,13 +9,8 @@ products_df = read_table('processed_products_data')
 orders_df['order_id'] = orders_df['order_id'].astype(str)
 
 print('Processing data...')
-ord_cols = ['product_id', 'product_name', 'department']
-prod_cols = ['product_id', 'product_name', 'department']
-df_orders = data_preparation_orders(orders_df,
-                                    ord_cols)
-
-df_products = data_preparation_products(products_df,
-                                        prod_cols)
+df_orders = data_preparation_orders(orders_df)
+df_products = data_preparation_products(products_df)
 
 print('Creating vectorstores...')
 create_faiss_index(df=df_products,

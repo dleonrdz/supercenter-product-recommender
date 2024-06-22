@@ -5,18 +5,22 @@ import os
 # Calculate the path to the directory ABOVE the current script directory (i.e., the project root)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-def data_preparation_orders(df_orders, features):
+def data_preparation_orders(df_orders):
 
-  df_orders['text_feature'] = df_orders[features]\
-    .apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+  df_orders['text_feature'] = 'Product ' + df_orders['cart_inclusion_order'].astype(str) + ': ' + \
+    df_orders['product_id'].astype(str) + ' ' + df_orders['product_name'].astype(str) + \
+    ' from department ' + df_orders['department'].astype(str) + \
+    ' and reordered ' + df_orders['reordered'].astype(str)
+
   df_orders = df_orders.groupby('order_id',
-                                as_index=False)['text_feature'].agg(lambda x: ' '.join(x))
+                                as_index=False)['text_feature'].agg(lambda x: ','.join(x))
 
   return df_orders[['order_id', 'text_feature']]
 
-def data_preparation_products(df_products, features):
-  df_products['text_feature'] = df_products[features]\
-    .apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+def data_preparation_products(df_products):
+  df_products['text_feature'] = 'Product: ' + \
+                              df_products['product_id'].astype(str) + ' ' + df_products['product_name'].astype(str) + \
+                              ' from department ' + df_products['department'].astype(str)
 
   return df_products[['product_id','text_feature']]
 
