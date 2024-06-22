@@ -1,19 +1,20 @@
 import tensorflow as tf
 import numpy as np
 from two_towers_finetuning import TwoTowerModel, train_step
-from model_evaluation import train_orders_df
+from model_training_and_evaluation_utils import train_orders_df
 from vector_storage import load_faiss_index
 from embedding_process import data_preparation_orders, embedding_process
 import pickle
+from db_utilities import write_table
 #from retrievers import get_embeddings_by_ids
 
 print('Reading data...')
 train_orders_df['order_id'] = train_orders_df['order_id'].astype(str)
 train_order_ids = list(train_orders_df['order_id'].unique())
+write_table(train_orders_df, 'training_orders')
 
 print('Preparing training data...')
-features = ['product_id', 'product_name', 'department']
-train_orders_df_prepared = data_preparation_orders(train_orders_df, features)
+train_orders_df_prepared = data_preparation_orders(train_orders_df)
 
 print('Retrieving product embeddings...')
 db_path_products = 'vectorstores/products_index_pt'
