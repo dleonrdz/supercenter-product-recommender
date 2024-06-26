@@ -1,20 +1,18 @@
 from sentence_transformers import SentenceTransformer
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS
 import os
 import pandas as pd
 import numpy as np
 import json
 import tensorflow as tf
-#from dotenv import load_dotenv
+from dotenv import load_dotenv
 #from datetime import datetime
-#from google.cloud import aiplatform
+from pinecone import Pinecone
 
 # Load environment variables from .env file
-#load_dotenv()
-#PROJECT_ID = os.getenv('PROJECT_ID')
-#API_KEY = os.getenv('API_KEY')
-#LOCATION = os.getenv('LOCATION')
+load_dotenv()
+PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
 
 # Calculate the path to the directory ABOVE the current script directory (i.e., the project root)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -55,7 +53,28 @@ def custom_embeddings_to_json(embeddings, ids, tower):
         json.dump(result, f)
 
     print(f"Embeddings and IDs have been stored in {json_path}")
+def json_to_pinecone_format(json_file):
+    json_file_path = os.path.join(PROJECT_ROOT, f'vectorstores/{json_file}')
+    print('Reading json file...')
+    with open(json_file_path, 'r') as f:
+        data = json.load(f)
+    print('Refactoring to suitable format...')
+    pinecone_data = [(item['id'], item['embedding'], {"id": item['id']}) for item in data]
+    return pinecone_data
+def upsert_embeddings_to_pincone_index(index_name, pinecone_data, batch_size=100):
+    pc = Pinecone(api_key=PINECONE_API_KEY)
+    index = pc.Index(index_name)
 
-#def gcp_vectorstore():
-    #UID = datetime.now().strftime("%m%d%H%M")
+    for i in range(0, len(pinecone_data), batch_size):
+        batch = pinecone_data[i:i + batch_size]
+        index.upsert(vectors=batch)
+        print(f'Batch {i} upserted')
+    print(index.describe_index_stats())
+
+
+
+
+
+
+
 

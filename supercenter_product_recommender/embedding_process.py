@@ -24,10 +24,10 @@ def data_preparation_products(df_products):
 
   return df_products[['product_id','text_feature']]
 
-def embedding_process(df, transformer):
+def embedding_process(texts, transformer):
   path = os.path.join(PROJECT_ROOT, 'data/')
   model = SentenceTransformer(transformer)
-  embeddings = model.encode(df['text_feature'].tolist())
+  embeddings = model.encode(texts)
   return embeddings
 
 def get_refined_embeddings(model, embeddings, tower = 'product'):
