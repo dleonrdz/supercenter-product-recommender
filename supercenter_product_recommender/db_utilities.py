@@ -15,13 +15,13 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def write_table(df: pd.DataFrame, table: str):
     """
-    Writes the specified DataFrame to the specified table in store_sales.db
+    Writes the specified DataFrame to the specified table in data/processed_data.db
     """
     with SessionLocal() as session:
         df.to_sql(table, session.get_bind(), if_exists="replace", index=False)
 def read_table(table: str):
     """
-    Reads the specified table from store_sales.db and returns the result as a DataFrame
+    Reads the specified table from data/processed_data.db and returns the result as a DataFrame
     """
     query = f"SELECT * FROM {table}"
     with SessionLocal() as session:
@@ -32,7 +32,7 @@ def read_table(table: str):
 
 def delete_table(table: str):
     """
-    Deletes the specified table from store_sales.db and returns the result as a DataFrame
+    Deletes the specified table from data/processed_data.db
     """
     query = f"SELECT * FROM {table}"
     with SessionLocal() as session:
@@ -40,4 +40,11 @@ def delete_table(table: str):
         response = session.execute(q)
 
     return response
+
+def update_table(df: pd.DataFrame, table: str):
+    """
+    Writes or updates with new rows, the specified DataFrame to the specified table in data/processed_data.db
+    """
+    with SessionLocal() as session:
+        df.to_sql(table, session.get_bind(), if_exists="append", index=False)
 

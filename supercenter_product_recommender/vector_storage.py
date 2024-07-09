@@ -1,4 +1,3 @@
-from sentence_transformers import SentenceTransformer
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 import os
@@ -12,28 +11,37 @@ from pinecone import Pinecone
 
 # Load environment variables from .env file
 load_dotenv()
-PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
+PINECONE_API_KEY = os.getenv('PINECONE_API_KEY2')
 
 # Calculate the path to the directory ABOVE the current script directory (i.e., the project root)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-def create_faiss_index(df, id_column, transformer, name):
+def create_faiss_index(df, text_column,id_column, transformer, name):
+    '''
+    Creates a FAISS index from the given dataframe and stores it locally.
+    '''
     model=HuggingFaceEmbeddings(model_name=transformer)
     path = os.path.join(PROJECT_ROOT, f'vectorstores/{name}')
-    metadata = df[[id_column, 'text_feature']].rename(columns={id_column: 'id', 'text_feature': 'text'})\
+    metadata = df[[id_column, text_column]].rename(columns={id_column: 'id', text_column: 'text'})\
         .to_dict(orient='records')
-    vector_store = FAISS.from_texts(df['text_feature'].tolist(),
+    vector_store = FAISS.from_texts(df[text_column].tolist(),
                                     model,
                                     ids = df[id_column].tolist(),
                                     metadatas=metadata)
     vector_store.save_local(path)
 
 def load_faiss_index(path, transformer):
+    '''
+    Loads a FAISS index from the specified local path.
+    '''
     model = HuggingFaceEmbeddings(model_name=transformer)
     return FAISS.load_local(path, model, allow_dangerous_deserialization= True)
 
 
 def custom_embeddings_to_json(embeddings, ids, tower):
+    '''
+    Converts embeddings and their corresponding IDs to a JSON file.
+    '''
     if len(embeddings) != len(ids):
         raise ValueError("Embeddings and IDs must have the same length")
     embeddings_list = embeddings.numpy().tolist() if isinstance(embeddings,
@@ -54,6 +62,9 @@ def custom_embeddings_to_json(embeddings, ids, tower):
 
     print(f"Embeddings and IDs have been stored in {json_path}")
 def json_to_pinecone_format(json_file):
+    '''
+    Converts embeddings stored in a JSON file to the format suitable for Pinecone upsert.
+    '''
     json_file_path = os.path.join(PROJECT_ROOT, f'vectorstores/{json_file}')
     print('Reading json file...')
     with open(json_file_path, 'r') as f:
@@ -62,6 +73,9 @@ def json_to_pinecone_format(json_file):
     pinecone_data = [(item['id'], item['embedding'], {"id": item['id']}) for item in data]
     return pinecone_data
 def upsert_embeddings_to_pincone_index(index_name, pinecone_data, batch_size=100):
+    '''
+    Upserts embeddings to a Pinecone index in batches.
+    '''
     pc = Pinecone(api_key=PINECONE_API_KEY)
     index = pc.Index(index_name)
 

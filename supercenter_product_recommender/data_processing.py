@@ -1,6 +1,13 @@
 from data_processing_utilities import raw_data_processing
 from db_utilities import write_table
 
+"""
+This script is only for call and run the needed steps in order to process
+the raw data we were given.
+
+The functions are defined on its respective scripts
+"""
+
 # Processing raw data
 print('Processing raw data...')
 orders_data, products_data = raw_data_processing()

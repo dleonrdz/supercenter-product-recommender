@@ -1,89 +1,140 @@
 import tensorflow as tf
 import numpy as np
-from two_towers_finetuning import TwoTowerModel, train_step
-from model_training_and_evaluation_utils import train_orders_df
+from two_towers_finetuning import TwoTowerModel
 from vector_storage import load_faiss_index
-from embedding_process import data_preparation_orders, embedding_process
 import pickle
-from db_utilities import write_table
-#from retrievers import get_embeddings_by_ids
+from db_utilities import read_table
+import matplotlib.pyplot as plt
 
+"""
+This script is only for call and run the needed steps in order to train the two-tower 
+architectures by using the already created embeddings.
+
+The functions are defined on its respective scripts
+"""
+
+# Reading training orders
 print('Reading data...')
+train_orders_df = read_table('training_orders')
 train_orders_df['order_id'] = train_orders_df['order_id'].astype(str)
-train_order_ids = list(train_orders_df['order_id'].unique())
-write_table(train_orders_df, 'training_orders')
 
-print('Preparing training data...')
-train_orders_df_prepared = data_preparation_orders(train_orders_df)
-
-print('Retrieving product embeddings...')
+# Initializing vectorstores with stored embeddings
+# Paths
 db_path_products = 'vectorstores/products_index_pt'
-db_path_orders = 'vectorstores/orders_index_pt'
+db_path_orders = 'vectorstores/training_orders_index_pt'
+
+# Pre-trained model used
 transformer_name = 'hiiamsid/sentence_similarity_spanish_es'
+
+# Loading
 db_products = load_faiss_index(db_path_products, transformer_name)
 db_orders = load_faiss_index(db_path_orders, transformer_name)
 index_products = db_products.index
 index_orders = db_orders.index
+print('Retrieving product embeddings...')
+# Reading all product embeddings
 product_embeddings = index_products.reconstruct_n(0, index_products.ntotal)
 product_embeddings = np.array(product_embeddings)
 
-print('Retrieving orders embeddings...')
-orders_embeddings = index_orders.reconstruct_n(0, index_orders.ntotal)
-orders_embeddings = np.array(orders_embeddings)
+# This part will generate a dictionary with the respective product id to embedding
+# in order to be able to match the product embedding to all the corresponding orders
 
-with open('vectorstores/orders_index_pt/index.pkl', 'rb') as f:
+with open('vectorstores/products_index_pt/index.pkl', 'rb') as f:
     index_content = pickle.load(f)
 
-index_to_order_id = index_content[1]
+index_to_product_id = index_content[1]
+product_id_to_embedding = {v: product_embeddings[k] for k, v in index_to_product_id.items()}
 
-order_id_to_index = {v: k for k, v in index_to_order_id.items()}
-
-train_indices = [order_id_to_index[id] for id in train_order_ids if id in order_id_to_index]
-train_order_embeddings = np.array(orders_embeddings[train_indices])
-
-#print('Creating training orders embeddings...')
-#train_order_embeddings = embedding_process(train_orders_df_prepared, transformer_name)
-#train_order_embeddings = np.array(train_order_embeddings)
+print('Retrieving orders embeddings...')
+# Reading all traininf orders embeddings and storing them as list
+orders_embeddings = index_orders.reconstruct_n(0, index_orders.ntotal)
+orders_embeddings_list = orders_embeddings.tolist()
 
 print('Preparing for training...')
-product_embedding_dim = 768
-order_embedding_dim = 768
-model = TwoTowerModel(product_embedding_dim, order_embedding_dim)
-optimizer = tf.keras.optimizers.Adam()
+# Adding corresponding embeddings to training dataset to match each co-ocurrence order-product
+train_orders_df['orders_embeddings'] = orders_embeddings_list
+train_orders_df['product_embeddings'] = train_orders_df['product_id'].map(product_id_to_embedding)
 
-print('Training...')
-epochs = 10
-batch_size = 32
+# Discarding missing products
+train_orders_df.dropna(inplace = True)
 
-for epoch in range(epochs):
-    print(f"Epoch {epoch + 1}/{epochs}")
-    for i in range(0, len(product_embeddings), batch_size):
-        product_batch = product_embeddings[i:i + batch_size]
-        order_batch = train_order_embeddings[i:i + batch_size]
+# Now we set both embeddings and ensure they are of the same size
+train_order_embeddings = np.array(train_orders_df['orders_embeddings'].tolist())
+train_product_embeddings = np.array(train_orders_df['product_embeddings'].tolist())
+print(f'Training orders embeddings: {len(train_order_embeddings)}')
+print(f'Training product embeddings: {len(train_product_embeddings)}')
 
-        if product_batch.shape[0] != order_batch.shape[0]:
-            min_batch_size = min(product_batch.shape[0], order_batch.shape[0])
-            product_batch = product_batch[:min_batch_size]
-            order_batch = order_batch[:min_batch_size]
+# Setting emnbeddings as tensors
+train_order_embeddings_ds = tf.data.Dataset.from_tensor_slices({"order_embedding": train_order_embeddings})
+train_product_embeddings_ds = tf.data.Dataset.from_tensor_slices({"product_embedding": train_product_embeddings})
 
-        loss = train_step(model, product_batch, order_batch, optimizer)
-        print(f"Batch {i // batch_size + 1}/{len(product_embeddings) // batch_size}: Loss = {loss.numpy()}")
+# Shuffling all trainin examples
+dataset_size = len(train_order_embeddings)
+train_ds = tf.data.Dataset.zip((train_order_embeddings_ds, train_product_embeddings_ds))
+train_ds = train_ds.shuffle(buffer_size=dataset_size, seed=42)
+
+# Defining train dataset in a suitable tensorflow format
+train_ds = train_ds.map(lambda x, y: {**x, **y}).batch(32)
+
+# Specifying embeddings dimension
+embedding_dim = 768
+
+# Initializing model
+model = TwoTowerModel(embedding_dim, product_embeddings)
+
+# Ensure the model is built by calling it on a batch of data (dummy step to ensure model to be built)
+dummy_order_embedding = tf.constant(train_order_embeddings[:64])
+dummy_product_embedding = tf.constant(train_product_embeddings[:64])
+model.query_model({"order_embedding": dummy_order_embedding})
+model.candidate_model({"product_embedding": dummy_product_embedding})
+
+model.build(input_shape={"order_embedding": tf.TensorShape([None, embedding_dim]),
+                         "product_embedding": tf.TensorShape([None, embedding_dim])})
+
+
+# Model compilation with chosen optimizer
+model.compile(optimizer=tf.keras.optimizers.Adagrad(0.05))
+
+# Defining epochs
+num_epochs = 200
+
+# Defining callbacks
+checkpoint_filepath = 'models/checkpoint.model.keras'
+model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+    filepath=checkpoint_filepath,
+    monitor='loss',
+    mode='min',
+    save_weights_only=True,
+    save_best_only=True,
+    verbose=1)
+
+early_stopping = tf.keras.callbacks.EarlyStopping(
+    monitor='loss',
+    patience=2,
+    baseline=None,
+    restore_best_weights=False,
+    start_from_epoch=0
+)
+
+print('Training....')
+# Training process
+try:
+    history = model.fit(train_ds,
+                        epochs=num_epochs,
+                        verbose=1,
+                        callbacks=[model_checkpoint_callback, early_stopping])
+except Exception as e:
+    print(f"An error occurred: {e}")
+    # Save the model state on error
+    model.save_weights(checkpoint_filepath)
 
 print('Saving model...')
-model.save('models/two_towers_trained.keras')
+# Save the model after training
+inputs = {
+    "order_embedding": tf.keras.Input(shape=(embedding_dim,)),
+    "product_embedding": tf.keras.Input(shape=(embedding_dim,))
+}
+model._set_inputs(inputs)
+model.save('models/two_tower_architecture_trained')
 
-'''
-for epoch in range(epochs):
-    print(f"Epoch {epoch + 1}/{epochs}")
-    for i in range(0, min(len(product_embeddings), len(train_order_embeddings)), batch_size):
-        product_batch = product_embeddings[i:i + batch_size]
-        order_batch = train_order_embeddings[i:i + batch_size]
-        if product_batch.shape[0] != order_batch.shape[0]:
-            min_batch_size = min(product_batch.shape[0], order_batch.shape[0])
-            product_batch = product_batch[:min_batch_size]
-            order_batch = order_batch[:min_batch_size]
-
-        loss = train_step(model, product_batch, order_batch, optimizer)
-        print(f"Batch {i // batch_size + 1}/{len(product_embeddings) // batch_size}: Loss = {loss.numpy()}")
-
-'''
+print('Two-tower architecture successfully trained')
