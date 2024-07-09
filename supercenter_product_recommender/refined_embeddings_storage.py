@@ -29,8 +29,10 @@ product_ids = list(db_products.docstore._dict.keys())
 print('Fine-tuning embeddings...')
 #Refining embeddings
 refined_embeddings = get_refined_embeddings(model,
-                                            embeddings=product_embeddings)
+                                            embeddings=product_embeddings[0:2])
 
+print(refined_embeddings)
+'''
 print('Storing refined embeddings...')
 # Storing as json
 custom_embeddings_to_json(embeddings=refined_embeddings,ids=product_ids,tower='product')
@@ -47,4 +49,4 @@ upsert_embeddings_to_pincone_index('supercenter-recommender-system',
                                    pinecone_data,
                                    batch_size=500)
 print('Embeddings upserted successfully.')
-
+'''

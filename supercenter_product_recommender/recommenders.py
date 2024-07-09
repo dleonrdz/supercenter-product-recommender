@@ -1,14 +1,13 @@
 import tensorflow as tf
 from two_towers_finetuning import TwoTowerModel
 print('Loading model...')
-model = tf.keras.models.load_model('models/two_tower_architecture_trained', custom_objects={'TwoTowerModel': TwoTowerModel})
+model = tf.keras.models.load_model('models/two_tower_architecture', custom_objects={'TwoTowerModel': TwoTowerModel})
 print('Model loaded')
 import numpy as np
 from dotenv import load_dotenv
 from pinecone import Pinecone
-import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from supercenter_product_recommender.vector_storage import load_faiss_index
 from supercenter_product_recommender.embedding_process import embedding_process, get_refined_embeddings
