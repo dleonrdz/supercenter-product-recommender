@@ -440,6 +440,20 @@ marshmallow = ">=3.18.0,<4.0.0"
 typing-inspect = ">=0.4.0,<1"
 
 [[package]]
+name = "deprecation"
+version = "2.1.0"
+description = "A library to handle automated deprecations"
+optional = false
+python-versions = "*"
+files = [
+    {file = "deprecation-2.1.0-py2.py3-none-any.whl", hash = "sha256:a10811591210e1fb0e768a8c25517cabeabcba6f0bf96564f8ff45189f90b14a"},
+    {file = "deprecation-2.1.0.tar.gz", hash = "sha256:72b3bde64e5d778694b0cf68178aed03d15e15477116add3fb773e581f9518ff"},
+]
+
+[package.dependencies]
+packaging = "*"
+
+[[package]]
 name = "docstring-parser"
 version = "0.16"
 description = "Parse Python docstrings in reST, Google and Numpydoc format"
@@ -3662,6 +3676,21 @@ watchdog = {version = ">=2.1.5,<5", markers = "platform_system != \"Darwin\""}
 snowflake = ["snowflake-connector-python (>=2.8.0)", "snowflake-snowpark-python (>=0.9.0)"]
 
 [[package]]
+name = "streamlit-modal"
+version = "0.1.2"
+description = "Modal for streamlit"
+optional = false
+python-versions = "*"
+files = [
+    {file = "streamlit_modal-0.1.2-py3-none-any.whl", hash = "sha256:60dac7590fd7a168d046cc03335460ac323b060676818bf8000949a878c74386"},
+    {file = "streamlit_modal-0.1.2.tar.gz", hash = "sha256:3c169aed6e659fd834e3526ffac285efd77867c2e5847131c2fa9d441468a522"},
+]
+
+[package.dependencies]
+deprecation = "*"
+streamlit = "*"
+
+[[package]]
 name = "sympy"
 version = "1.12.1"
 description = "Computer algebra system (CAS) in Python"
@@ -4578,4 +4607,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.12"
-content-hash = "90a824111160f4fe2afecb5ebec533fce34e5e8c89ef8081320f7420aa688f02"
+content-hash = "d291543e6b6a8d01fadf6eb085a13e0028af54741cd1d63b7bfd69448126eccd"

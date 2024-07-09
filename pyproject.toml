@@ -27,6 +27,7 @@ tensorflow-macos = "^2.16.2"
 tensorflow = "^2.16.2"
 tensorflow-recommenders = "^0.7.3"
 tf-keras = "^2.16.0"
+streamlit-modal = "^0.1.2"
 
 
 [build-system]
