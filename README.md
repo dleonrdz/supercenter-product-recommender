@@ -12,7 +12,7 @@ This repository contains the code for our Capgemini x IE School of Science and T
 - [Disclaimer](#disclaimer)
 
 ## Introduction
-Our SuperCenter Product Recommender System leverages AI and well-known transformers architectures to offer personalized product recommendations. This project aims to increase the average number of items per shopping cart, enhance cross-selling, and provide tailored offers to customers in online store.
+Our PoC of the SuperCenter Product Recommender System leverages AI and well-known transformers architectures to offer personalized product recommendations. This project aims to increase the average number of items per shopping cart, enhance cross-selling, and provide tailored offers to customers in online store.
 
 ## Project Structure
 The repository is organized as follows:
@@ -73,7 +73,7 @@ To run the application locally, follow these steps:
     - `finetuning_trigger.py`
     - `refined_embeddings_storage.py`
 
-    These scripts will process the raw data, create embeddings, fine-tune the two-tower architecture, and store the refined embeddings.
+    These scripts will process the raw data, create embeddings, train the two-tower architecture, save it, and store the refined product embeddings within a pinecone vectorstore.
 
 2. **Run the Streamlit app**:
     ```sh
@@ -82,7 +82,7 @@ To run the application locally, follow these steps:
 
 ## Evaluation
 
-To replicate our evaluation results, run the `model_evaluation.py` script located in the `supercenter_product_recommender` folder. This script will evaluate the recommendation system's performance and save the results.
+To replicate our evaluation results, run the `model_evaluation.py` script located in the `supercenter_product_recommender` folder. This script will evaluate the recommendation system's performance as well as the performance of using the pre-trained model embeddings with a simple recommendation retrieval, and save the results.
 
 
 ## Additional Information
